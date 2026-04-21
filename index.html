@@ -710,6 +710,125 @@ window.delExp=id=>{
   renderDay();
 };
 
+
+// ── BUDGET ────────────────────────────────────────────────────────────────────
+const AVAIL=2257592,AVAIL1=752531;
+function getRate(){const r=parseFloat($('rate-in')?.value||195);return isNaN(r)?195:r;}
+window.saveRate=()=>{try{localStorage.setItem('rate',$('rate-in').value);}catch{}renderBudget();};
+function renderBudget(){
+  const rate=getRate();
+  const spent=exps.reduce((s,e)=>s+e.krw,0);
+  const left=AVAIL-spent,pct=Math.min(Math.round(spent/AVAIL*100),100);
+  const isOver=left<0;
+  const m=$('budget-main');if(!m)return;
+  const TOTAL=3900000,TOTAL1=1300000;
+  const left1=AVAIL1-Math.round(spent/3);
+  const pct1=Math.min(Math.round(spent/3/TOTAL1*100),100);
+  m.innerHTML=`
+    <div style="margin-bottom:18px">
+      <div style="font-size:11px;font-weight:600;color:var(--t3);letter-spacing:.5px;margin-bottom:10px">전체 비용 (3인)</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+        <span style="font-size:13px;color:var(--t2)">${krw(TOTAL)} 중</span>
+        <div style="text-align:right">
+          <span style="font-size:26px;font-weight:900;letter-spacing:-.5px;color:${isOver?'var(--p)':'#22C55E'}">${krw(Math.abs(left))}</span>
+          <span style="font-size:13px;color:var(--t2)"> ${isOver?'초과':'남음'}</span>
+        </div>
+      </div>
+      <div class="prog" style="margin-bottom:5px"><div class="prog-in" style="width:${pct}%;background:${pct>90?'var(--p)':pct>70?'#F59E0B':'#22C55E'}"></div></div>
+      <div style="font-size:12px;color:var(--t3);text-align:right">${spent>0?krw(spent)+' 사용 ('+pct+'%)':'0원 사용 (0%)'}</div>
+    </div>
+    <div style="border-top:0.5px solid var(--bd);padding-top:16px">
+      <div style="font-size:11px;font-weight:600;color:var(--t3);letter-spacing:.5px;margin-bottom:10px">1인 기준</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+        <span style="font-size:13px;color:var(--t2)">${krw(TOTAL1)} 중</span>
+        <div style="text-align:right">
+          <span style="font-size:26px;font-weight:900;letter-spacing:-.5px;color:${left1<0?'var(--p)':'#22C55E'}">${krw(Math.abs(left1))}</span>
+          <span style="font-size:13px;color:var(--t2)"> ${left1<0?'초과':'남음'}</span>
+        </div>
+      </div>
+      <div class="prog" style="margin-bottom:5px"><div class="prog-in" style="width:${pct1}%;background:${pct1>90?'var(--p)':pct1>70?'#F59E0B':'#22C55E'}"></div></div>
+      <div style="font-size:12px;color:var(--t3);text-align:right">${spent>0?krw(Math.round(spent/3))+' 사용 ('+pct1+'%)':'0원 사용 (0%)'}</div>
+    </div>`;
+  // 지출 목록
+  const el=$('exp-list');if(!el)return;
+  if(!exps.length){el.innerHTML='<div style="padding:16px 0;text-align:center;color:var(--t3);font-size:13px">아직 지출 없음<br>+ 추가로 기록해봐요</div>';return;}
+  el.innerHTML=exps.map((e,i)=>`<div class="exp-row">
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-size:18px">${CI[e.cat]||'💳'}</span>
+        <span style="font-size:13px;font-weight:700">${e.cat}</span>
+        <span style="font-size:11px;color:var(--t3)">${e.dt}</span>
+        <span style="font-size:11px;color:var(--t3)">${e.by}</span>
+      </div>
+      ${e.memo?`<div style="font-size:12px;color:var(--t2);margin-left:26px">${e.memo}</div>`:''}
+    </div>
+    <div style="text-align:right;flex-shrink:0;margin-left:12px">
+      <div style="font-size:14px;font-weight:700">${e.cur==='KRW'?krw(e.krw):'¥'+e.cny}</div>
+      ${e.cur==='CNY'?`<div style="font-size:11px;color:var(--t3)">≈ ${krw(e.krw)}</div>`:''}
+      <button onclick="delExp('${e.id}')" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:11px;margin-top:2px">삭제</button>
+    </div>
+  </div>`).join('');
+}
+
+// ── 지출 폼 ───────────────────────────────────────────────────────────────────
+let curCurrency='CNY';selDayLabel=getDayLabel();
+function renderDaySel(){
+  const r=$('day-sel-row');if(!r)return;
+  r.innerHTML=TRIP_DAYS.map((d,i)=>{
+    const lbl=DAY_LABELS[i];
+    const on=selDayLabel===lbl;
+    return`<button onclick="selDay('${lbl}',this)" style="padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;border:1.5px solid ${on?'var(--p)':'var(--bd)'};background:${on?'var(--pl)':'var(--card)'};color:${on?'var(--p)':'var(--t2)'};cursor:pointer">${lbl}</button>`;
+  }).join('');
+}
+function renderCats(){
+  const r=$('cat-row');if(!r)return;
+  r.innerHTML=CATS.map(c=>`<button onclick="setCat2('${c}',this)" style="padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;border:1.5px solid ${c===selCat?'var(--p)':'var(--bd)'};background:${c===selCat?'var(--pl)':'var(--card)'};color:${c===selCat?'var(--p)':'var(--t2)'};cursor:pointer;white-space:nowrap">${CI[c]||''} ${c}</button>`).join('');
+}
+window.selDay=(lbl,btn)=>{selDayLabel=lbl;renderDaySel();};
+window.setCat2=(cat,btn)=>{selCat=cat;renderCats();};
+window.setCur=(cur)=>{
+  curCurrency=cur;
+  $('cur-sym').textContent=cur==='CNY'?'¥':'₩';
+  $('cur-cny').style.background=cur==='CNY'?'var(--p)':'#F4F4F5';
+  $('cur-cny').style.color=cur==='CNY'?'#fff':'var(--t2)';
+  $('cur-krw').style.background=cur==='KRW'?'var(--p)':'#F4F4F5';
+  $('cur-krw').style.color=cur==='KRW'?'#fff':'var(--t2)';
+  $('exp-amt').value='';$('convert-preview').textContent='';
+};
+window.toggleExpForm=()=>{
+  const f=$('exp-form');
+  if(f.classList.contains('hide')){
+    f.classList.remove('hide');
+    selDayLabel=getDayLabel();
+    renderDaySel();renderCats();setCur('CNY');$('exp-note').value='';$('exp-amt').value='';
+    const rate=localStorage.getItem('rate');
+    if(rate&&$('rate-in'))$('rate-in').value=rate;
+  } else {f.classList.add('hide');}
+};
+window.addExp=()=>{
+  const amt=parseFloat($('exp-amt').value);if(!amt||isNaN(amt))return;
+  const rate=getRate();
+  let krwAmt,cnyAmt;
+  if(curCurrency==='CNY'){cnyAmt=amt;krwAmt=Math.round(amt*rate);}
+  else{krwAmt=amt;cnyAmt=+(amt/rate).toFixed(2);}
+  const e={id:'e'+Date.now(),cur:curCurrency,cny:cnyAmt,krw:krwAmt,cat:selCat,by:myName,memo:$('exp-note').value.trim(),dt:new Date().toLocaleDateString('ko'),dayLabel:selDayLabel};
+  exps.push(e);ss('exps',exps);
+  $('exp-form').classList.add('hide');
+  renderBudget();
+  if($('t-sch').classList.contains('on')) renderDay();
+};
+window.delExp=id=>{
+  exps=exps.filter(e=>e.id!==id);ss('exps',exps);
+  renderBudget();
+  renderDay();
+};
+window.toggleFixed=()=>{
+  const d=$('fixed-detail'),a=$('fixed-arrow');
+  const hidden=d.style.display==='none';
+  d.style.display=hidden?'':'none';
+  a.textContent=hidden?'▴':'▾';
+};
+
 // ── CHECKLIST ─────────────────────────────────────────────────────────────────
 function getAllCL(){
   const custom=sg('ck-custom')||[];
